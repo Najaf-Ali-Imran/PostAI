@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>PostAI - Logistics Control Center</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#34D399",
+                        "background-dark": "#18181B",
+                        "surface-dark": "#27272A",
+                        "surface-darker": "#121214",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #18181B; }
+        ::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525B; }
+        #map { height: 100%; width: 100%; border-radius: 0 1.5rem 1.5rem 0; z-index: 1; }
+        .leaflet-routing-container { display: none; }
+        .active-item {
+            background: linear-gradient(#27272A, #27272A) padding-box,
+                        linear-gradient(to right, #34D399, #10B981) border-box;
+            border: 1px solid transparent;
+        }
+        .truck-marker img {
+            transition: transform 0.3s ease-out;
+            transform-origin: center center;
+        }
+        /* Geocoder/Search bar dark theme */
+        .leaflet-control-geocoder {
+            background: #1F1F22 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        }
+        .leaflet-control-geocoder-form input {
+            background: #18181B !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 13px !important;
+        }
+        .leaflet-control-geocoder-form input::placeholder {
+            color: #6B7280 !important;
+        }
+        .leaflet-control-geocoder-form input:focus {
+            outline: none !important;
+            border-color: #34D399 !important;
+            box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2) !important;
+        }
+        .leaflet-control-geocoder-alternatives {
+            background: #1F1F22 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 8px !important;
+            margin-top: 4px !important;
+        }
+        .leaflet-control-geocoder-alternatives a {
+            color: #E5E7EB !important;
+            padding: 10px 12px !important;
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
+        .leaflet-control-geocoder-alternatives a:hover {
+            background: #27272A !important;
+            color: #34D399 !important;
+        }
+        .leaflet-control-geocoder-icon {
+            background-color: transparent !important;
+            filter: invert(1) brightness(0.8) !important;
+        }
+        .leaflet-control-geocoder-expanded {
+            background: #1F1F22 !important;
+        }
+        /* Dark popup styling */
+        .dark-popup .leaflet-popup-content-wrapper {
+            background: transparent !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+            border-radius: 12px !important;
+            padding: 0 !important;
+        }
+        .dark-popup .leaflet-popup-content {
+            margin: 0 !important;
+        }
+        .dark-popup .leaflet-popup-tip {
+            background: #1F1F22 !important;
+        }
+        .dark-popup .leaflet-popup-close-button {
+            color: #9CA3AF !important;
+            font-size: 20px !important;
+            top: 8px !important;
+            right: 8px !important;
+        }
+        .dark-popup .leaflet-popup-close-button:hover {
+            color: #34D399 !important;
+        }
+        /* Highlighted sidebar item */
+        .sidebar-highlight {
+            background: linear-gradient(#27272A, #27272A) padding-box,
+                        linear-gradient(to right, #34D399, #10B981) border-box !important;
+            border: 1px solid transparent !important;
+            animation: pulse-highlight 1s ease-in-out;
+        }
+        @keyframes pulse-highlight {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+            50% { box-shadow: 0 0 16px 4px rgba(52, 211, 153, 0.4); }
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-gray-100 h-screen overflow-hidden flex items-center justify-center p-4 md:p-8 dark">
+    <div class="w-full h-full max-w-[1600px] flex rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-surface-darker">
+        <!-- Left Sidebar -->
+        <aside class="w-[380px] flex-shrink-0 flex flex-col bg-[#111111] border-r border-white/5 h-full z-20">
+            <div class="p-6 pb-2">
+                <div class="flex items-center justify-between mb-6">
+                    <a href="index.html" class="text-gray-400 hover:text-white transition">
+                        <span class="material-icons-round">arrow_back</span>
+                    </a>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 text-black flex items-center justify-center font-bold shadow-lg shadow-primary/20">
+                            <span class="material-icons-round">local_shipping</span>
+                        </div>
+                        <span class="font-semibold text-lg tracking-wide text-white">PostAI Logistics</span>
+                    </div>
+                    <button class="text-gray-400 hover:text-white transition" onclick="showInfoPopup()">
+                        <span class="material-icons-round">info</span>
+                    </button>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-[#1F1F22] p-3 rounded-xl border border-white/5">
+                        <p class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1">Total Distance</p>
+                        <div class="flex items-center gap-1 text-primary">
+                            <span class="material-icons-round text-sm">route</span>
+                            <span class="text-sm font-bold" id="totalDistance">0 km</span>
+                        </div>
+                    </div>
+                    <div class="bg-[#1F1F22] p-3 rounded-xl border border-white/5">
+                        <p class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1">Locations</p>
+                        <div class="flex items-center gap-1 text-blue-400">
+                            <span class="material-icons-round text-sm">location_on</span>
+                            <span class="text-sm font-bold" id="totalLocations">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fuel Consumption Calculator -->
+                <div class="bg-[#1F1F22] p-3 rounded-xl border border-white/5 mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+                            <span class="material-icons-round text-yellow-400 text-lg">local_gas_station</span>
+                        </div>
+                        <div class="flex-1 flex items-center gap-2">
+                            <input type="number" id="fuelAverage" placeholder="12" min="1" step="0.1" class="w-16 bg-[#111111] border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <span class="text-xs text-gray-500">km/L</span>
+                        </div>
+                        <span class="text-xs font-bold text-yellow-400" id="fuelNeeded">-- L</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex gap-2">
+                        <button id="highPriorityBtn" onclick="togglePriority()" class="flex items-center gap-1 px-3 py-1.5 bg-[#1F1F22] rounded-full text-xs font-medium text-gray-300 border border-white/5 hover:border-gray-600 transition">
+                            <span>High Priority</span>
+                            <span class="material-icons-round text-[14px]" id="priorityIcon">check_box_outline_blank</span>
+                        </button>
+                        <button id="warehouseBtn" onclick="addWarehouse()" class="flex items-center gap-1 px-3 py-1.5 bg-[#1F1F22] rounded-full text-xs font-medium text-gray-300 border border-white/5 hover:border-gray-600 transition">
+                            <span class="material-icons-round text-[14px]">warehouse</span>
+                            <span>Warehouse</span>
+                        </button>
+                    </div>
+                    <button onclick="undoLast()" id="undoBtn" disabled class="text-gray-600 hover:text-white transition disabled:opacity-30" title="Undo Last Location">
+                        <span class="material-icons-round text-lg">undo</span>
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <button id="houseBtn" onclick="toggleAddHouse()" class="py-2 bg-[#1F1F22] text-gray-300 rounded-lg font-semibold text-sm hover:bg-[#2A2A2E] transition flex items-center justify-center gap-1">
+                        <span class="material-icons-round text-sm">add_location</span>
+                        Add House
+                    </button>
+                    <button onclick="optimizeRoute()" id="optimizeBtn" disabled class="py-2 bg-[#1F1F22] text-gray-400 rounded-lg font-semibold text-sm hover:bg-[#2A2A2E] transition disabled:opacity-50 flex items-center justify-center gap-1">
+                        <span class="material-icons-round text-sm">route</span>
+                        Optimize
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="startDelivery()" id="startDeliveryBtn" disabled class="py-2 bg-green-500/10 text-green-400 rounded-lg font-semibold text-sm hover:bg-green-500/20 transition border border-green-500/20 disabled:opacity-30 flex items-center justify-center gap-1">
+                        <span class="material-icons-round text-sm">local_shipping</span>
+                        Start Delivery
+                    </button>
+                    <button onclick="resetSimulation()" id="resetBtn" disabled class="py-2 bg-yellow-500/10 text-yellow-400 rounded-lg font-semibold text-sm hover:bg-yellow-500/20 transition border border-yellow-500/20 disabled:opacity-30 flex items-center justify-center gap-1">
+                        <span class="material-icons-round text-sm">replay</span>
+                        Reset
+                    </button>
+                </div>
+                <button onclick="clearAll()" class="w-full py-2 bg-red-500/10 text-red-400 rounded-lg font-semibold text-sm hover:bg-red-500/20 transition border border-red-500/20 flex items-center justify-center gap-1">
+                    <span class="material-icons-round text-sm">delete_sweep</span>
+                    Clear All
+                </button>
+            </div>
+
+            <!-- Route List -->
+            <div class="flex-1 overflow-y-auto px-4 pb-4 mt-2" id="routeList">
+                <div class="text-center text-gray-500 text-sm py-8">
+                    <span class="material-icons-round text-4xl mb-2">map</span>
+                    <p>Click map to add locations</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map Area -->
+        <main class="flex-1 relative bg-surface-dark overflow-hidden">
+            <div id="map"></div>
+            
+            <!-- Status Message -->
+            <div id="statusMessage" class="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 rounded-full bg-[#18181B]/95 backdrop-blur-md border border-white/10 text-sm font-medium text-white shadow-lg opacity-0 transition-opacity">
+                Ready to optimize
+            </div>
+
+            <!-- Info Popup -->
+            <div id="infoPopup" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="bg-[#18181B] rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div class="p-6 border-b border-white/5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                                    <span class="material-icons-round text-primary">info</span>
+                                </div>
+                                <h2 class="text-xl font-bold text-white">How to Use PostAI Logistics</h2>
+                            </div>
+                            <button onclick="closeInfoPopup()" class="text-gray-400 hover:text-white transition">
+                                <span class="material-icons-round">close</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6 space-y-4 text-gray-300">
+                        <div class="flex gap-3">
+                            <span class="material-icons-round text-primary text-xl">looks_one</span>
+                            <div>
+                                <h3 class="font-semibold text-white mb-1">Add Warehouse</h3>
+                                <p class="text-sm">Click the <span class="text-primary">Warehouse</span> button, then click anywhere on the map to place your starting point. Only one warehouse allowed.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <span class="material-icons-round text-primary text-xl">looks_two</span>
+                            <div>
+                                <h3 class="font-semibold text-white mb-1">Add Houses</h3>
+                                <p class="text-sm">Click <span class="text-primary">Add House</span> button to activate. Click multiple locations on the map. Click the button again to deactivate.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <span class="material-icons-round text-primary text-xl">looks_3</span>
+                            <div>
+                                <h3 class="font-semibold text-white mb-1">High Priority Deliveries</h3>
+                                <p class="text-sm">Toggle <span class="text-red-400">High Priority</span> checkbox before adding houses. These will be visited first in the optimized route.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <span class="material-icons-round text-primary text-xl">looks_4</span>
+                            <div>
+                                <h3 class="font-semibold text-white mb-1">Optimize Route</h3>
+                                <p class="text-sm">Click <span class="text-primary">Optimize</span> to calculate the best delivery route using Graph + Priority Queue algorithms.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <span class="material-icons-round text-primary text-xl">undo</span>
+                            <div>
+                                <h3 class="font-semibold text-white mb-1">Undo</h3>
+                                <p class="text-sm">Click the undo icon to remove the last added location.</p>
+                            </div>
+                        </div>
+                        <div class="mt-6 p-4 bg-primary/10 rounded-xl border border-primary/20">
+                            <div class="flex items-start gap-2">
+                                <span class="material-icons-round text-primary text-xl">lightbulb</span>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Pro Tip</h4>
+                                    <p class="text-sm">The route uses real road data from OSRM. ETA is calculated at 40 km/h average speed.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+    <script>
+        const API_URL = 'http://127.0.0.1:18080';
+        let map;
+        let locations = [];
+        let markers = [];
+        let routingControl = null;
+        let routeSegments = [];
+        let addingHouse = false;
+        let addingWarehouse = false;
+        let isHighPriority = false;
+        let currentDistance = 0;
+        const segmentColors = ['#34D399', '#3B82F6', '#F59E0B', '#EF4444', '#A855F7', '#EC4899', '#14B8A6', '#F97316'];
+        
+        // Truck simulation variables
+        let truckMarker = null;
+        let deliveryAnimation = null;
+        let allRouteCoordinates = [];
+        let optimizedRouteData = null;
+
+        // Initialize map centered on Islamabad, Pakistan
+        map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([33.6844, 73.0479], 13);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap © CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Add search/geocoder control
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            position: 'topright',
+            placeholder: 'Search address in Islamabad...',
+            errorMessage: 'Location not found'
+        }).on('markgeocode', function(e) {
+            const latlng = e.geocode.center;
+            map.setView(latlng, 16);
+            showStatus('Location found! Click to add marker', 'success');
+        }).addTo(map);
+
+        // Fuel calculator listener
+        document.getElementById('fuelAverage').addEventListener('input', function() {
+            calculateFuel();
+        });
+
+        // Function to highlight sidebar item when clicking on map
+        function highlightSidebarItem(locationId) {
+            // Remove previous highlights
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('sidebar-highlight');
+            });
+            
+            // Find and highlight the corresponding sidebar item
+            const sidebarItem = document.querySelector(`.sidebar-item[data-location-id="${locationId}"]`);
+            if (sidebarItem) {
+                sidebarItem.classList.add('sidebar-highlight');
+                // Scroll into view
+                sidebarItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Map click handler
+        map.on('click', function(e) {
+            if (addingWarehouse) {
+                if (locations.some(loc => loc.type === 'Warehouse')) {
+                    showStatus('Warehouse already exists!', 'error');
+                    addingWarehouse = false;
+                    return;
+                }
+                addLocation(e.latlng.lat, e.latlng.lng, 'Warehouse', false);
+                addingWarehouse = false;
+                const btn = document.getElementById('warehouseBtn');
+                btn.classList.add('bg-[#1F1F22]', 'text-gray-300', 'border-white/5');
+                btn.classList.remove('bg-primary/20', 'text-primary', 'border-primary/30');
+            } else if (addingHouse) {
+                addLocation(e.latlng.lat, e.latlng.lng, 'House', isHighPriority);
+            }
+        });
+
+        function togglePriority() {
+            isHighPriority = !isHighPriority;
+            const icon = document.getElementById('priorityIcon');
+            const btn = document.getElementById('highPriorityBtn');
+            
+            if (isHighPriority) {
+                icon.textContent = 'check_box';
+                btn.classList.add('bg-red-500/20', 'border-red-500/30', 'text-red-400');
+                btn.classList.remove('bg-[#1F1F22]', 'border-white/5', 'text-gray-300');
+            } else {
+                icon.textContent = 'check_box_outline_blank';
+                btn.classList.remove('bg-red-500/20', 'border-red-500/30', 'text-red-400');
+                btn.classList.add('bg-[#1F1F22]', 'border-white/5', 'text-gray-300');
+            }
+        }
+
+        function addWarehouse() {
+            if (locations.some(loc => loc.type === 'Warehouse')) {
+                showStatus('Warehouse already exists!', 'error');
+                return;
+            }
+            addingWarehouse = true;
+            const btn = document.getElementById('warehouseBtn');
+            btn.classList.remove('bg-[#1F1F22]', 'text-gray-300', 'border-white/5');
+            btn.classList.add('bg-primary/20', 'text-primary', 'border-primary/30');
+            showStatus('Click on map to place warehouse', 'info');
+        }
+
+        function toggleAddHouse() {
+            addingHouse = !addingHouse;
+            const btn = document.getElementById('houseBtn');
+            
+            if (addingHouse) {
+                btn.classList.remove('bg-[#1F1F22]', 'text-gray-300');
+                btn.classList.add('bg-primary', 'text-black');
+                showStatus('Click on map to add house locations', 'info');
+            } else {
+                btn.classList.add('bg-[#1F1F22]', 'text-gray-300');
+                btn.classList.remove('bg-primary', 'text-black');
+                showStatus('House placement deactivated', 'info');
+            }
+        }
+
+        function addLocation(lat, lon, type, isHighPriority = false) {
+            const id = locations.length;
+            const location = { id, lat, lon, type, isHighPriority };
+            locations.push(location);
+
+            const iconColor = type === 'Warehouse' ? 'white' : (isHighPriority ? '#EF4444' : '#34D399');
+            const iconHtml = type === 'Warehouse' ? 
+                '<span class="material-icons-round" style="font-size: 24px;">inventory_2</span>' :
+                (isHighPriority ? 
+                    '<span class="material-icons-round" style="font-size: 24px;">warning</span>' :
+                    '<span class="material-icons-round" style="font-size: 24px;">home</span>');
+
+            const icon = L.divIcon({
+                html: `<div style="width: 40px; height: 40px; background: ${iconColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${type === 'Warehouse' ? 'black' : 'white'}; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 2px solid ${type === 'Warehouse' ? '#34D399' : (isHighPriority ? '#DC2626' : '#10B981')};">${iconHtml}</div>`,
+                className: '',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+
+            const marker = L.marker([lat, lon], { icon }).addTo(map);
+            
+            // Add popup and click handler
+            const popupContent = `
+                <div style="background: #1F1F22; padding: 12px; border-radius: 8px; min-width: 150px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="color: ${iconColor}; font-size: 20px;" class="material-icons-round">${type === 'Warehouse' ? 'inventory_2' : (isHighPriority ? 'warning' : 'home')}</span>
+                        <strong style="color: white; font-size: 14px;">${type} #${id}</strong>
+                    </div>
+                    <div style="color: #9CA3AF; font-size: 12px;">
+                        <div>Lat: ${lat.toFixed(6)}</div>
+                        <div>Lon: ${lon.toFixed(6)}</div>
+                        ${isHighPriority ? '<div style="color: #EF4444; margin-top: 4px;">⚡ High Priority</div>' : ''}
+                    </div>
+                </div>
+            `;
+            marker.bindPopup(popupContent, {
+                className: 'dark-popup',
+                closeButton: true,
+                autoClose: false
+            });
+            
+            // Store location data on marker
+            marker.locationData = location;
+            
+            // Click handler to highlight sidebar
+            marker.on('click', function() {
+                highlightSidebarItem(id);
+            });
+            
+            markers.push(marker);
+
+            updateUI();
+            document.getElementById('undoBtn').disabled = locations.length === 0;
+            showStatus(`${type} added ${isHighPriority ? '(HIGH PRIORITY)' : ''}`, 'success');
+        }
+
+        function clearAll() {
+            locations = [];
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            // Clear route segments
+            routeSegments.forEach(seg => {
+                if (seg.control) {
+                    map.removeControl(seg.control);
+                }
+            });
+            routeSegments = [];
+            currentDistance = 0;
+            document.getElementById('totalDistance').textContent = '0 km';
+            document.getElementById('fuelNeeded').textContent = '-- L';
+            document.getElementById('undoBtn').disabled = true;
+            document.getElementById('startDeliveryBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = true;
+            resetSimulation(); // Clear truck if active
+            optimizedRouteData = null;
+            document.getElementById('routeList').innerHTML = '<div class="text-center text-gray-500 text-sm py-8"><span class="material-icons-round text-4xl mb-2">map</span><p>Click map to add locations</p></div>';
+            updateUI();
+            showStatus('All locations cleared', 'info');
+        }
+
+        async function optimizeRoute() {
+            if (locations.length < 2) {
+                showStatus('Add at least warehouse and one house', 'error');
+                return;
+            }
+
+            try {
+                showStatus('Optimizing route...', 'info');
+                const response = await fetch(`${API_URL}/optimize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(locations)
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayOptimizedRoute(data);
+                    optimizedRouteData = data; // Store for truck simulation
+                    document.getElementById('startDeliveryBtn').disabled = false;
+                    document.getElementById('resetBtn').disabled = false;
+                    showStatus('Route optimized successfully!', 'success');
+                } else {
+                    showStatus('Optimization failed', 'error');
+                }
+            } catch (error) {
+                showStatus('Error connecting to server', 'error');
+                console.error(error);
+            }
+        }
+
+        function undoLast() {
+            if (locations.length === 0) return;
+            
+            const removed = locations.pop();
+            const marker = markers.pop();
+            map.removeLayer(marker);
+            
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            
+            document.getElementById('routeList').innerHTML = '<div class="text-center text-gray-500 text-sm py-8"><span class="material-icons-round text-4xl mb-2">map</span><p>Click map to add locations</p></div>';
+            
+            if (locations.length === 0) {
+                document.getElementById('undoBtn').disabled = true;
+            }
+            
+            updateUI();
+            showStatus(`Removed ${removed.type} [${removed.id}]`, 'success');
+        }
+
+        function displayOptimizedRoute(data) {
+            // Clear old routes
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            routeSegments.forEach(seg => seg.polyline.remove());
+            routeSegments = [];
+
+            const route = data.optimized_route;
+            let totalRealDistance = 0;
+
+            // Create routing for each segment with different colors
+            for (let i = 0; i < route.length - 1; i++) {
+                const from = L.latLng(route[i].lat, route[i].lon);
+                const to = L.latLng(route[i + 1].lat, route[i + 1].lon);
+                const color = segmentColors[i % segmentColors.length];
+
+                const segmentControl = L.Routing.control({
+                    waypoints: [from, to],
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    show: false,
+                    lineOptions: {
+                        styles: [{color: color, opacity: 0.8, weight: 6}],
+                        addWaypoints: false
+                    },
+                    createMarker: function() { return null; },
+                    router: L.Routing.osrmv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1'
+                    })
+                }).addTo(map);
+
+                const segmentData = {
+                    index: i,
+                    control: segmentControl,
+                    color: color,
+                    from: i,
+                    to: i + 1,
+                    polyline: null
+                };
+                routeSegments.push(segmentData);
+
+                segmentControl.on('routesfound', function(e) {
+                    // Store the actual polyline from the route
+                    const routes = e.routes[0];
+                    const fromLoc = route[i];
+                    const toLoc = route[i + 1];
+                    
+                    // Access the line through the routing control
+                    setTimeout(() => {
+                        const lines = [];
+                        map.eachLayer(function(layer) {
+                            if (layer instanceof L.Polyline && !(layer instanceof L.Marker)) {
+                                const lineColor = layer.options.styles ? layer.options.styles[0].color : (layer.options.color || '');
+                                if (lineColor === color) {
+                                    lines.push(layer);
+                                }
+                            }
+                        });
+                        if (lines.length > 0) {
+                            const polyline = lines[lines.length - 1];
+                            segmentData.polyline = polyline;
+                            
+                            // Add click handler to route segment
+                            polyline.on('click', function(e) {
+                                L.DomEvent.stopPropagation(e);
+                                
+                                // Create popup content for route segment
+                                const popupContent = `
+                                    <div style="background: #1F1F22; padding: 12px; border-radius: 8px; min-width: 180px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                            <span style="width: 12px; height: 12px; border-radius: 50%; background: ${color}; box-shadow: 0 0 8px ${color}80;"></span>
+                                            <strong style="color: white; font-size: 14px;">Route Segment ${i + 1}</strong>
+                                        </div>
+                                        <div style="color: #9CA3AF; font-size: 12px; line-height: 1.6;">
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>From:</span>
+                                                <span style="color: white;">${fromLoc.type} #${fromLoc.id}</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>To:</span>
+                                                <span style="color: white;">${toLoc.type} #${toLoc.id}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                L.popup({
+                                    className: 'dark-popup',
+                                    closeButton: true
+                                })
+                                .setLatLng(e.latlng)
+                                .setContent(popupContent)
+                                .openOn(map);
+                                
+                                // Highlight destination in sidebar
+                                highlightSidebarItem(toLoc.id);
+                            });
+                            
+                            // Add hover effect
+                            polyline.on('mouseover', function() {
+                                this.setStyle({weight: 10, opacity: 1});
+                            });
+                            polyline.on('mouseout', function() {
+                                this.setStyle({weight: 6, opacity: 0.8});
+                            });
+                        }
+                    }, 100);
+                    
+                    const segRoute = e.routes[0];
+                    totalRealDistance += segRoute.summary.totalDistance / 1000;
+                    
+                    if (i === route.length - 2) {
+                        currentDistance = totalRealDistance;
+                        document.getElementById('totalDistance').textContent = totalRealDistance.toFixed(2) + ' km';
+                        calculateFuel();
+                    }
+                });
+            }
+
+            document.getElementById('totalLocations').textContent = data.total_locations;
+
+            let routeHTML = '';
+            data.optimized_route.forEach((loc, index) => {
+                const isFirst = index === 0;
+                const isUrgent = loc.isHighPriority;
+                const bgClass = 'hover:bg-[#1F1F22] border-transparent hover:border-white/5';
+                const iconBg = isFirst ? 'bg-white' : (isUrgent ? 'bg-red-500/20' : 'bg-[#2A2A2E]');
+                const iconColor = isFirst ? 'text-black' : (isUrgent ? 'text-red-500' : 'text-white');
+                const icon = loc.type === 'Warehouse' ? 'inventory_2' : (isUrgent ? 'warning' : 'home');
+                const segmentColor = index > 0 ? segmentColors[(index - 1) % segmentColors.length] : '';
+                
+                routeHTML += `
+                    <div class="sidebar-item ${bgClass} p-4 rounded-2xl border transition group mb-3 cursor-pointer" data-location-id="${loc.id}" onclick="onSidebarItemClick(${loc.id}, ${loc.lat}, ${loc.lon})">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center ${iconColor} ${isFirst ? 'shadow-lg' : 'border border-white/10'}">
+                                    <span class="material-icons-round text-xl">${icon}</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold ${isFirst ? 'text-white' : 'text-gray-200 group-hover:text-white'} text-sm">${loc.type} ${loc.id}</h3>
+                                    <p class="text-xs ${isUrgent ? 'text-red-400' : isFirst ? 'text-primary' : 'text-gray-500 group-hover:text-primary'} font-medium mt-0.5">Stop #${index + 1} • ETA ${loc.eta_formatted || '0:00'}</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                ${isFirst ? '<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>' : ''}
+                                ${index > 0 ? `<span class="w-3 h-3 rounded-full" style="background: ${segmentColor}; box-shadow: 0 0 8px ${segmentColor}80;"></span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-3 pl-[52px]">
+                            <span class="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">ID: ${loc.id}</span>
+                            ${isUrgent ? '<span class="text-[10px] text-red-400 border border-red-500/20 bg-red-500/10 px-2 py-0.5 rounded">Urgent</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('routeList').innerHTML = routeHTML;
+        }
+        
+        // Handle sidebar item click
+        function onSidebarItemClick(locationId, lat, lon) {
+            // Center map on location
+            map.setView([lat, lon], 16);
+            
+            // Find and open the marker popup
+            markers.forEach(marker => {
+                if (marker.locationData && marker.locationData.id === locationId) {
+                    marker.openPopup();
+                }
+            });
+            
+            // Highlight this sidebar item
+            highlightSidebarItem(locationId);
+        }
+
+        function updateUI() {
+            const hasWarehouse = locations.some(loc => loc.type === 'Warehouse');
+            const hasHouses = locations.some(loc => loc.type === 'House');
+            const optimizeBtn = document.getElementById('optimizeBtn');
+            
+            if (hasWarehouse && hasHouses) {
+                optimizeBtn.disabled = false;
+                optimizeBtn.classList.remove('text-gray-400', 'bg-[#1F1F22]');
+                optimizeBtn.classList.add('text-black', 'bg-primary');
+            } else {
+                optimizeBtn.disabled = true;
+                optimizeBtn.classList.add('text-gray-400', 'bg-[#1F1F22]');
+                optimizeBtn.classList.remove('text-black', 'bg-primary');
+            }
+
+            document.getElementById('totalLocations').textContent = locations.length;
+        }
+
+        function calculateFuel() {
+            const fuelAverage = parseFloat(document.getElementById('fuelAverage').value);
+            const fuelDisplay = document.getElementById('fuelNeeded');
+            
+            if (!fuelAverage || fuelAverage <= 0 || currentDistance === 0) {
+                fuelDisplay.textContent = '-- L';
+                return;
+            }
+            
+            const fuelNeeded = currentDistance / fuelAverage;
+            fuelDisplay.textContent = fuelNeeded.toFixed(2) + ' L';
+        }
+
+        // Calculate bearing (direction) between two lat/lng points
+        function getBearing(lat1, lng1, lat2, lng2) {
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const lat1Rad = lat1 * Math.PI / 180;
+            const lat2Rad = lat2 * Math.PI / 180;
+            
+            const y = Math.sin(dLng) * Math.cos(lat2Rad);
+            const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+                     Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+            
+            let bearing = Math.atan2(y, x) * 180 / Math.PI;
+            // Normalize to 0-360
+            bearing = (bearing + 360) % 360;
+            return bearing;
+        }
+
+        // Truck Simulation Functions
+        function startDelivery() {
+            if (!optimizedRouteData || routeSegments.length === 0) {
+                showStatus('Please optimize route first', 'error');
+                return;
+            }
+
+            // Disable start button during delivery
+            document.getElementById('startDeliveryBtn').disabled = true;
+            
+            // Collect all route coordinates from segments
+            allRouteCoordinates = [];
+            let segmentsProcessed = 0;
+            
+            routeSegments.forEach((seg, index) => {
+                setTimeout(() => {
+                    if (seg.polyline && seg.polyline.getLatLngs) {
+                        let coords = seg.polyline.getLatLngs();
+                        // Flatten if nested (routing machine returns nested arrays)
+                        if (coords.length > 0 && Array.isArray(coords[0])) {
+                            coords = coords.flat();
+                        }
+                        allRouteCoordinates.push(...coords);
+                    }
+                    
+                    segmentsProcessed++;
+                    if (segmentsProcessed === routeSegments.length) {
+                        simulateDelivery();
+                    }
+                }, (index + 1) * 150);
+            });
+        }
+
+        function simulateDelivery() {
+            if (allRouteCoordinates.length === 0) {
+                showStatus('No route coordinates available', 'error');
+                document.getElementById('startDeliveryBtn').disabled = false;
+                return;
+            }
+
+            // Create truck icon using DivIcon for rotation control
+            const truckIcon = L.divIcon({
+                html: `<div class="truck-container" style="width: 40px; height: 40px; position: relative;">
+                         <img src="assets/truck.png" style="width: 100%; height: 100%; transition: transform 0.3s ease-out; transform-origin: center center;" class="truck-image"/>
+                       </div>`,
+                className: 'truck-marker',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -20]
+            });
+
+            // Create truck marker at starting position
+            truckMarker = L.marker(allRouteCoordinates[0], {
+                icon: truckIcon,
+                zIndexOffset: 1000,
+                rotationAngle: 0
+            }).addTo(map);
+
+            // Set initial rotation after marker is added to map
+            setTimeout(() => {
+                if (allRouteCoordinates.length > 1) {
+                    const initialBearing = getBearing(
+                        allRouteCoordinates[0].lat,
+                        allRouteCoordinates[0].lng,
+                        allRouteCoordinates[1].lat,
+                        allRouteCoordinates[1].lng
+                    );
+                    console.log(`Initial Bearing: ${initialBearing.toFixed(2)}°`);
+                    const truckImg = document.querySelector('.truck-image');
+                    if (truckImg) {
+                        truckImg.style.transform = `rotate(${initialBearing}deg)`;
+                    }
+                }
+            }, 100);
+
+            // Calculate animation speed based on ETA
+            // Very slow: 10 min ETA = 2 min animation for detailed visualization
+            const totalETAMinutes = optimizedRouteData.optimized_route[optimizedRouteData.optimized_route.length - 1].eta_minutes || 10;
+            const animationDurationMs = totalETAMinutes * 12000; // 12 seconds per minute (1/4 original speed)
+            const stepDelay = Math.max(animationDurationMs / allRouteCoordinates.length, 50); // Minimum 50ms per step
+
+            let currentStep = 0;
+            showStatus('Delivery in progress...', 'info');
+
+            deliveryAnimation = setInterval(() => {
+                currentStep++;
+                
+                if (currentStep >= allRouteCoordinates.length) {
+                    clearInterval(deliveryAnimation);
+                    showStatus('Delivery completed!', 'success');
+                    document.getElementById('startDeliveryBtn').disabled = false;
+                    return;
+                }
+
+                const currentCoord = allRouteCoordinates[currentStep];
+                truckMarker.setLatLng(currentCoord);
+                
+                // Calculate bearing and rotate truck for next movement
+                if (currentStep < allRouteCoordinates.length - 1) {
+                    const nextCoord = allRouteCoordinates[currentStep + 1];
+                    const bearing = getBearing(
+                        currentCoord.lat, 
+                        currentCoord.lng, 
+                        nextCoord.lat, 
+                        nextCoord.lng
+                    );
+                    
+                    console.log(`Step ${currentStep}: Bearing = ${bearing.toFixed(2)}°`);
+                    
+                    // Apply rotation to truck image
+                    const truckElement = truckMarker.getElement();
+                    console.log('Truck element:', truckElement);
+                    if (truckElement) {
+                        const truckImg = truckElement.querySelector('.truck-image');
+                        console.log('Truck img:', truckImg);
+                        if (truckImg) {
+                            truckImg.style.transform = `rotate(${bearing}deg)`;
+                            console.log('Applied rotation:', bearing);
+                        }
+                    }
+                }
+            }, stepDelay);
+        }
+
+        function resetSimulation() {
+            // Stop animation
+            if (deliveryAnimation) {
+                clearInterval(deliveryAnimation);
+                deliveryAnimation = null;
+            }
+
+            // Remove truck marker
+            if (truckMarker) {
+                map.removeLayer(truckMarker);
+                truckMarker = null;
+            }
+
+            // Clear route data
+            allRouteCoordinates = [];
+            
+            // Re-enable start button
+            document.getElementById('startDeliveryBtn').disabled = false;
+            
+            showStatus('Simulation reset', 'info');
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.classList.remove('opacity-0');
+            statusDiv.classList.add('opacity-100');
+            
+            if (type === 'error') {
+                statusDiv.classList.add('bg-red-500/90', 'border-red-400');
+                statusDiv.classList.remove('bg-[#18181B]/95', 'border-white/10');
+            } else if (type === 'success') {
+                statusDiv.classList.add('bg-green-500/90', 'border-green-400');
+                statusDiv.classList.remove('bg-[#18181B]/95', 'border-white/10');
+            } else {
+                statusDiv.classList.remove('bg-red-500/90', 'border-red-400', 'bg-green-500/90', 'border-green-400');
+                statusDiv.classList.add('bg-[#18181B]/95', 'border-white/10');
+            }
+            
+            setTimeout(() => {
+                statusDiv.classList.remove('opacity-100');
+                statusDiv.classList.add('opacity-0');
+            }, 3000);
+        }
+
+        function showInfoPopup() {
+            document.getElementById('infoPopup').classList.remove('hidden');
+        }
+
+        function closeInfoPopup() {
+            document.getElementById('infoPopup').classList.add('hidden');
+        }
+
+        showStatus('Click to add warehouse, then houses', 'info');
+    </script>
+</body>
+</html>

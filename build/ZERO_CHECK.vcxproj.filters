@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\LENOVO\Documents\Najaf_Uni\Projects\PostAI\build\CMakeFiles\fce7b87717421f99b02990265b49fc40\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{AF94E444-BEA7-38AC-AC41-FD0A9EA88721}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

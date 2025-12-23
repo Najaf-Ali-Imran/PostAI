@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\LENOVO\Documents\Najaf_Uni\Projects\PostAI\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\LENOVO\Documents\Najaf_Uni\Projects\PostAI\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{96127620-0171-302E-8C98-0F591B3F4E5B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
