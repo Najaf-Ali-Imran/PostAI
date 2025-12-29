@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PostAI - Documentation</title>
+<link rel="icon" type="image/png" href="assets/logo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#34D399",
+                    "primary-dark": "#059669",
+                    "background-dark": "#18181B",
+                    "surface-dark": "#27272A",
+                    "surface-darker": "#121214",
+                    "accent-purple": "#C084FC",
+                    "accent-blue": "#60A5FA",
+                    "accent-orange": "#FB923C",
+                    "accent-red": "#F87171",
+                },
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                    mono: ["Fira Code", "monospace"],
+                },
+            },
+        },
+    };
+</script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .glass-panel {
+        background: rgba(24, 24, 27, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .code-block {
+        background: #0d0d0f;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-family: 'Fira Code', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+    }
+    .code-block::-webkit-scrollbar { height: 6px; }
+    .code-block::-webkit-scrollbar-track { background: #18181B; }
+    .code-block::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 3px; }
+    .ds-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .ds-card:hover {
+        border-color: rgba(52, 211, 153, 0.3);
+        box-shadow: 0 0 30px rgba(52, 211, 153, 0.1);
+        transform: translateY(-2px);
+    }
+    .keyword { color: #C084FC; }
+    .type { color: #60A5FA; }
+    .string { color: #34D399; }
+    .comment { color: #6B7280; font-style: italic; }
+    .number { color: #FB923C; }
+    .function { color: #F9E62D; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #121214; }
+    ::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 4px; }
+    .nav-link { position: relative; }
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #34D399;
+        transition: width 0.3s ease;
+    }
+    .nav-link:hover::after { width: 100%; }
+</style>
+</head>
+<body class="bg-surface-darker text-gray-100 min-h-screen">
+<!-- Background Effects -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 30px 30px;"></div>
+    <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-primary blur-[150px] opacity-[0.05] rounded-full translate-x-1/2 -translate-y-1/2"></div>
+    <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent-purple blur-[150px] opacity-[0.05] rounded-full -translate-x-1/2 translate-y-1/2"></div>
+</div>
+
+<!-- Navigation -->
+<nav class="sticky top-0 z-50 glass-panel border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-3 group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 text-black flex items-center justify-center font-bold shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow">
+                <span class="material-icons-round">local_shipping</span>
+            </div>
+            <span class="font-bold text-xl tracking-tight text-white">PostAI Docs</span>
+        </a>
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+            <a class="nav-link hover:text-white transition-colors" href="#overview">Overview</a>
+            <a class="nav-link hover:text-white transition-colors" href="#data-structures">Data Structures</a>
+            <a class="nav-link hover:text-white transition-colors" href="#algorithms">Algorithms</a>
+            <a class="nav-link hover:text-white transition-colors" href="#api">API</a>
+        </div>
+        <a href="app.html" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-emerald-400 text-black text-sm font-semibold transition-all flex items-center gap-2">
+            <span>Launch App</span>
+            <span class="material-icons-round text-lg">arrow_forward</span>
+        </a>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<header class="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-12">
+    <div class="text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="material-icons-round text-sm">menu_book</span>
+            Technical Documentation
+        </div>
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-6">
+            PostAI Logistics <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-purple">Documentation</span>
+        </h1>
+        <p class="text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">
+            A comprehensive guide to the data structures and algorithms powering the PostAI route optimization system. Built with C++ and modern web technologies.
+        </p>
+    </div>
+</header>
+
+<!-- Overview Section -->
+<section id="overview" class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+    <div class="glass-panel rounded-3xl p-8 md:p-12">
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-emerald-600/20 flex items-center justify-center border border-primary/20">
+                <span class="material-icons-round text-primary text-2xl">info</span>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-white">Project Overview</h2>
+                <p class="text-gray-500 text-sm">What is PostAI?</p>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    <strong class="text-white">PostAI</strong> is an intelligent logistics optimization platform that solves the 
+                    <span class="text-primary">Traveling Salesman Problem (TSP)</span> for delivery route planning. It uses advanced 
+                    algorithms to find the most efficient route for visiting multiple delivery locations.
+                </p>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    The system features a <span class="text-accent-purple">hybrid approach</span> that guarantees optimal solutions 
+                    for small networks (≤12 locations) and near-optimal solutions for larger networks, with priority handling 
+                    for urgent deliveries.
+                </p>
+                <div class="flex flex-wrap gap-3">
+                    <span class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold border border-primary/20">C++17</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-accent-blue/10 text-accent-blue text-xs font-semibold border border-accent-blue/20">Crow Framework</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-accent-purple/10 text-accent-purple text-xs font-semibold border border-accent-purple/20">Leaflet.js</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-accent-orange/10 text-accent-orange text-xs font-semibold border border-accent-orange/20">REST API</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-surface-dark rounded-2xl p-5 border border-white/5">
+                    <span class="material-icons-round text-primary text-3xl mb-3">speed</span>
+                    <h4 class="font-semibold text-white mb-1">Optimal Routes</h4>
+                    <p class="text-gray-500 text-sm">Guaranteed shortest path for ≤12 stops</p>
+                </div>
+                <div class="bg-surface-dark rounded-2xl p-5 border border-white/5">
+                    <span class="material-icons-round text-accent-red text-3xl mb-3">priority_high</span>
+                    <h4 class="font-semibold text-white mb-1">Priority Handling</h4>
+                    <p class="text-gray-500 text-sm">High-priority deliveries first</p>
+                </div>
+                <div class="bg-surface-dark rounded-2xl p-5 border border-white/5">
+                    <span class="material-icons-round text-accent-blue text-3xl mb-3">map</span>
+                    <h4 class="font-semibold text-white mb-1">Real Roads</h4>
+                    <p class="text-gray-500 text-sm">OSRM-based road routing</p>
+                </div>
+                <div class="bg-surface-dark rounded-2xl p-5 border border-white/5">
+                    <span class="material-icons-round text-accent-purple text-3xl mb-3">undo</span>
+                    <h4 class="font-semibold text-white mb-1">Undo System</h4>
+                    <p class="text-gray-500 text-sm">Stack-based history</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Data Structures Section -->
+<section id="data-structures" class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-xs font-semibold uppercase tracking-wider mb-4">
+            <span class="material-icons-round text-sm">data_object</span>
+            Core Components
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-4">Data Structures</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">The fundamental building blocks that power PostAI's optimization engine</p>
+    </div>
+
+    <!-- DS 1: Graph -->
+    <div class="ds-card glass-panel rounded-3xl p-8 mb-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/20">
+                    <span class="material-icons-round text-white text-3xl">hub</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Graph (Adjacency List)</h3>
+                    <p class="text-gray-500">LogisticsGraph Class</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">Space: O(V + E)</span>
+                <span class="px-3 py-1 rounded-full bg-accent-blue/10 text-accent-blue text-xs font-semibold">Insert: O(1)</span>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">What is it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    A <span class="text-primary">Graph</span> represents the network of delivery locations. Each location is a 
+                    <strong class="text-white">vertex</strong> and the roads between them are <strong class="text-white">edges</strong> 
+                    with distances as weights.
+                </p>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Why Adjacency List?</h4>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li class="flex items-start gap-2">
+                        <span class="material-icons-round text-primary text-lg">check_circle</span>
+                        <span><strong class="text-white">Memory Efficient:</strong> O(V+E) vs O(V²) for matrix</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="material-icons-round text-primary text-lg">check_circle</span>
+                        <span><strong class="text-white">Faster Iteration:</strong> Only visits actual neighbors</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="material-icons-round text-primary text-lg">check_circle</span>
+                        <span><strong class="text-white">Sparse Networks:</strong> Real-world roads are sparse</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="code-block rounded-xl p-4 overflow-x-auto">
+<pre><span class="comment">// Graph Data Structure (Adjacency List)</span>
+<span class="keyword">class</span> <span class="type">LogisticsGraph</span> {
+<span class="keyword">private</span>:
+    <span class="type">int</span> numVertices;
+    <span class="type">vector</span>&lt;<span class="type">vector</span>&lt;<span class="type">Edge</span>&gt;&gt; adjacencyList;
+    <span class="type">unordered_map</span>&lt;<span class="type">int</span>, <span class="type">Location</span>&gt; locations;
+    
+<span class="keyword">public</span>:
+    <span class="function">LogisticsGraph</span>(<span class="type">int</span> vertices) : 
+        numVertices(vertices) {
+        adjacencyList.<span class="function">resize</span>(vertices);
+    }
+    
+    <span class="keyword">void</span> <span class="function">addEdge</span>(<span class="type">int</span> src, <span class="type">int</span> dest, <span class="type">double</span> dist) {
+        adjacencyList[src].<span class="function">push_back</span>(
+            <span class="function">Edge</span>(dest, dist)
+        );
+    }
+    
+    <span class="keyword">const</span> <span class="type">vector</span>&lt;<span class="type">Edge</span>&gt;&amp; <span class="function">getNeighbors</span>(<span class="type">int</span> id) {
+        <span class="keyword">return</span> adjacencyList[id];
+    }
+};</pre>
+            </div>
+        </div>
+        
+        <!-- Visual Diagram -->
+        <div class="mt-6 p-6 bg-surface-dark rounded-2xl border border-white/5">
+            <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 text-center">Visual Representation</h4>
+            <div class="flex justify-center items-center gap-8 flex-wrap">
+                <div class="text-center">
+                    <div class="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-white font-bold mb-2">W</div>
+                    <span class="text-xs text-gray-500">Warehouse</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-24 h-0.5 bg-gradient-to-r from-primary to-accent-blue relative">
+                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400">2.5 km</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 rounded-full bg-accent-blue/20 border-2 border-accent-blue flex items-center justify-center text-white font-bold mb-2">H1</div>
+                    <span class="text-xs text-gray-500">House 1</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-24 h-0.5 bg-gradient-to-r from-accent-blue to-accent-red relative">
+                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400">1.8 km</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 rounded-full bg-accent-red/20 border-2 border-accent-red flex items-center justify-center text-white font-bold mb-2">H2</div>
+                    <span class="text-xs text-gray-500">House 2 (HP)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DS 2: Stack -->
+    <div class="ds-card glass-panel rounded-3xl p-8 mb-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-purple to-purple-600 flex items-center justify-center shadow-lg shadow-accent-purple/20">
+                    <span class="material-icons-round text-white text-3xl">layers</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Stack</h3>
+                    <p class="text-gray-500">Undo History Feature</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 rounded-full bg-accent-purple/10 text-accent-purple text-xs font-semibold">Push: O(1)</span>
+                <span class="px-3 py-1 rounded-full bg-accent-purple/10 text-accent-purple text-xs font-semibold">Pop: O(1)</span>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">What is it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    A <span class="text-accent-purple">Stack</span> is a <strong class="text-white">LIFO (Last-In-First-Out)</strong> 
+                    data structure. Like a stack of plates - you can only add or remove from the top.
+                </p>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">How it's used?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    Every time you add locations, the current state is <span class="text-primary">pushed</span> onto the stack. 
+                    When you click <strong class="text-white">Undo</strong>, the last state is <span class="text-primary">popped</span> 
+                    and restored. Perfect for undo functionality!
+                </p>
+                <div class="flex items-center gap-4 p-4 bg-accent-purple/10 rounded-xl border border-accent-purple/20">
+                    <span class="material-icons-round text-accent-purple text-2xl">lightbulb</span>
+                    <p class="text-sm text-gray-300">LIFO behavior perfectly matches how undo should work - restore the most recent action first!</p>
+                </div>
+            </div>
+            <div class="code-block rounded-xl p-4 overflow-x-auto">
+<pre><span class="comment">// Stack for Undo History</span>
+<span class="type">stack</span>&lt;<span class="type">vector</span>&lt;<span class="type">Location</span>&gt;&gt; historyStack;
+
+<span class="comment">// PUSH - Save state before changes</span>
+historyStack.<span class="function">push</span>(locations);
+cout &lt;&lt; <span class="string">"State saved (Total: "</span> 
+     &lt;&lt; historyStack.<span class="function">size</span>() &lt;&lt; <span class="string">")"</span>;
+
+<span class="comment">// POP - Restore previous state</span>
+<span class="keyword">if</span> (!historyStack.<span class="function">empty</span>()) {
+    <span class="type">vector</span>&lt;<span class="type">Location</span>&gt; previous = 
+        historyStack.<span class="function">top</span>();
+    historyStack.<span class="function">pop</span>();
+    <span class="comment">// Restore the previous state</span>
+}</pre>
+            </div>
+        </div>
+        
+        <!-- Visual Stack Diagram -->
+        <div class="mt-6 p-6 bg-surface-dark rounded-2xl border border-white/5">
+            <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 text-center">Stack Operations</h4>
+            <div class="flex justify-center items-end gap-12">
+                <div class="text-center">
+                    <div class="w-32 border-2 border-accent-purple/50 border-t-0 rounded-b-xl p-2 space-y-2">
+                        <div class="bg-accent-purple/30 rounded px-3 py-2 text-xs font-mono text-white">State 3 ← TOP</div>
+                        <div class="bg-accent-purple/20 rounded px-3 py-2 text-xs font-mono text-gray-400">State 2</div>
+                        <div class="bg-accent-purple/10 rounded px-3 py-2 text-xs font-mono text-gray-500">State 1</div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 block">History Stack</span>
+                </div>
+                <div class="flex flex-col items-center gap-4 pb-8">
+                    <div class="flex items-center gap-2 text-primary">
+                        <span class="material-icons-round">arrow_upward</span>
+                        <span class="text-sm font-semibold">PUSH</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-accent-red">
+                        <span class="material-icons-round">arrow_downward</span>
+                        <span class="text-sm font-semibold">POP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DS 3: Priority Queue -->
+    <div class="ds-card glass-panel rounded-3xl p-8 mb-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-orange to-orange-600 flex items-center justify-center shadow-lg shadow-accent-orange/20">
+                    <span class="material-icons-round text-white text-3xl">low_priority</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Priority Queue (Min-Heap)</h3>
+                    <p class="text-gray-500">Prim's MST Algorithm</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 rounded-full bg-accent-orange/10 text-accent-orange text-xs font-semibold">Insert: O(log n)</span>
+                <span class="px-3 py-1 rounded-full bg-accent-orange/10 text-accent-orange text-xs font-semibold">Extract: O(log n)</span>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">What is it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    A <span class="text-accent-orange">Priority Queue</span> always gives you the element with the 
+                    <strong class="text-white">smallest (or largest) priority first</strong>. Implemented as a binary heap.
+                </p>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">How it's used?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    In <strong class="text-white">Prim's Algorithm</strong> for building the Minimum Spanning Tree (MST), 
+                    we always need the <span class="text-primary">shortest edge</span> next. The priority queue efficiently 
+                    maintains edges sorted by weight.
+                </p>
+                <ul class="space-y-2 text-gray-300 text-sm">
+                    <li class="flex items-start gap-2">
+                        <span class="material-icons-round text-accent-orange text-lg">arrow_right</span>
+                        <span>Always extracts the minimum cost edge</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="material-icons-round text-accent-orange text-lg">arrow_right</span>
+                        <span>Maintains heap property automatically</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="code-block rounded-xl p-4 overflow-x-auto">
+<pre><span class="comment">// Priority Queue Node</span>
+<span class="keyword">struct</span> <span class="type">PriorityNode</span> {
+    <span class="type">int</span> node;
+    <span class="type">double</span> cost;
+    <span class="type">int</span> parent;
+    
+    <span class="type">bool</span> <span class="keyword">operator</span>&gt;(<span class="keyword">const</span> <span class="type">PriorityNode</span>&amp; other) {
+        <span class="keyword">return</span> cost &gt; other.cost;
+    }
+};
+
+<span class="comment">// Min-Heap Priority Queue</span>
+<span class="type">priority_queue</span>&lt;
+    <span class="type">PriorityNode</span>,
+    <span class="type">vector</span>&lt;<span class="type">PriorityNode</span>&gt;,
+    <span class="type">greater</span>&lt;<span class="type">PriorityNode</span>&gt;  <span class="comment">// Min-heap</span>
+&gt; pq;
+
+pq.<span class="function">push</span>(<span class="function">PriorityNode</span>(<span class="number">0</span>, <span class="number">0.0</span>, -<span class="number">1</span>));
+
+<span class="keyword">while</span> (!pq.<span class="function">empty</span>()) {
+    <span class="type">PriorityNode</span> curr = pq.<span class="function">top</span>();
+    pq.<span class="function">pop</span>();  <span class="comment">// Always gets minimum</span>
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- DS 4: Distance Matrix -->
+    <div class="ds-card glass-panel rounded-3xl p-8 mb-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-blue to-blue-600 flex items-center justify-center shadow-lg shadow-accent-blue/20">
+                    <span class="material-icons-round text-white text-3xl">grid_on</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">2D Vector (Distance Matrix)</h3>
+                    <p class="text-gray-500">Dynamic Programming Table</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 rounded-full bg-accent-blue/10 text-accent-blue text-xs font-semibold">Space: O(n²)</span>
+                <span class="px-3 py-1 rounded-full bg-accent-blue/10 text-accent-blue text-xs font-semibold">Access: O(1)</span>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">What is it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    A <span class="text-accent-blue">2D Vector</span> (matrix) stores distances between 
+                    <strong class="text-white">all pairs of locations</strong>. Cell [i][j] contains the distance 
+                    from location i to location j.
+                </p>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Why use it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    The <strong class="text-white">Held-Karp DP algorithm</strong> requires frequent distance lookups. 
+                    Pre-computing all distances gives <span class="text-primary">O(1) access time</span> during optimization.
+                </p>
+            </div>
+            <div class="code-block rounded-xl p-4 overflow-x-auto">
+<pre><span class="comment">// Distance Matrix for DP</span>
+<span class="type">vector</span>&lt;<span class="type">vector</span>&lt;<span class="type">double</span>&gt;&gt; distMatrix;
+
+<span class="keyword">void</span> <span class="function">buildDistanceMatrix</span>() {
+    <span class="type">int</span> n = allLocations.<span class="function">size</span>();
+    distMatrix.<span class="function">resize</span>(n, <span class="type">vector</span>&lt;<span class="type">double</span>&gt;(n));
+    
+    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; n; i++) {
+        <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; n; j++) {
+            <span class="keyword">if</span> (i != j) {
+                distMatrix[i][j] = 
+                    <span class="function">haversineDistance</span>(
+                        locations[i].lat,
+                        locations[i].lon,
+                        locations[j].lat,
+                        locations[j].lon
+                    );
+            }
+        }
+    }
+}</pre>
+            </div>
+        </div>
+        
+        <!-- Matrix Visual -->
+        <div class="mt-6 p-6 bg-surface-dark rounded-2xl border border-white/5">
+            <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 text-center">Distance Matrix Example</h4>
+            <div class="overflow-x-auto">
+                <table class="mx-auto text-sm">
+                    <tr>
+                        <th class="p-2 text-gray-500"></th>
+                        <th class="p-2 text-accent-blue font-mono">W</th>
+                        <th class="p-2 text-accent-blue font-mono">H1</th>
+                        <th class="p-2 text-accent-blue font-mono">H2</th>
+                    </tr>
+                    <tr>
+                        <td class="p-2 text-accent-blue font-mono">W</td>
+                        <td class="p-2 text-gray-600 bg-surface-darker/50 rounded">0</td>
+                        <td class="p-2 text-primary bg-surface-darker/50 rounded">2.5</td>
+                        <td class="p-2 text-primary bg-surface-darker/50 rounded">4.1</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2 text-accent-blue font-mono">H1</td>
+                        <td class="p-2 text-primary bg-surface-darker/50 rounded">2.5</td>
+                        <td class="p-2 text-gray-600 bg-surface-darker/50 rounded">0</td>
+                        <td class="p-2 text-primary bg-surface-darker/50 rounded">1.8</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2 text-accent-blue font-mono">H2</td>
+                        <td class="p-2 text-primary bg-surface-darker/50 rounded">4.1</td>
+                        <td class="p-2 text-primary bg-surface-darker/50 rounded">1.8</td>
+                        <td class="p-2 text-gray-600 bg-surface-darker/50 rounded">0</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- DS 5: Bitmask -->
+    <div class="ds-card glass-panel rounded-3xl p-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-red to-red-600 flex items-center justify-center shadow-lg shadow-accent-red/20">
+                    <span class="material-icons-round text-white text-3xl">memory</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Bitmask (Integer as Set)</h3>
+                    <p class="text-gray-500">Held-Karp State Representation</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 rounded-full bg-accent-red/10 text-accent-red text-xs font-semibold">Space: O(1)</span>
+                <span class="px-3 py-1 rounded-full bg-accent-red/10 text-accent-red text-xs font-semibold">Set Ops: O(1)</span>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">What is it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    A <span class="text-accent-red">Bitmask</span> uses an integer's binary representation to store a 
+                    <strong class="text-white">set of elements</strong>. Each bit represents whether an element is included (1) or not (0).
+                </p>
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Why use it?</h4>
+                <p class="text-gray-300 leading-relaxed mb-4">
+                    In Held-Karp DP, we need to track which cities have been <span class="text-primary">visited</span>. 
+                    Instead of using arrays, a single integer can represent all 2<sup>n</sup> possible subsets!
+                </p>
+                <div class="p-4 bg-accent-red/10 rounded-xl border border-accent-red/20">
+                    <p class="text-sm text-gray-300"><strong class="text-white">Example:</strong> mask = 13 = 1101₂ means cities {0, 2, 3} are visited</p>
+                </div>
+            </div>
+            <div class="code-block rounded-xl p-4 overflow-x-auto">
+<pre><span class="comment">// Bitmask Operations in Held-Karp</span>
+<span class="type">int</span> fullMask = (<span class="number">1</span> &lt;&lt; n) - <span class="number">1</span>; <span class="comment">// All visited</span>
+
+<span class="comment">// Check if city i is in mask</span>
+<span class="keyword">if</span> (mask &amp; (<span class="number">1</span> &lt;&lt; i)) { <span class="comment">// Visited</span> }
+
+<span class="comment">// Add city next to mask</span>
+<span class="type">int</span> newMask = mask | (<span class="number">1</span> &lt;&lt; next);
+
+<span class="comment">// Remove city curr from mask</span>
+mask ^= (<span class="number">1</span> &lt;&lt; curr);
+
+<span class="comment">// DP state: dp[mask][i]</span>
+<span class="comment">// = min cost to visit all cities in mask,</span>
+<span class="comment">//   ending at city i</span>
+<span class="type">vector</span>&lt;<span class="type">vector</span>&lt;<span class="type">double</span>&gt;&gt; dp(
+    <span class="number">1</span> &lt;&lt; n, 
+    <span class="type">vector</span>&lt;<span class="type">double</span>&gt;(n, INF)
+);</pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Algorithms Section -->
+<section id="algorithms" class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4">
+            <span class="material-icons-round text-sm">psychology</span>
+            Optimization Engine
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-4">Algorithms</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">The intelligent algorithms that find optimal delivery routes</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- Held-Karp -->
+        <div class="ds-card glass-panel rounded-3xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <span class="material-icons-round text-primary text-xl">star</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white">Held-Karp DP</h3>
+                    <p class="text-xs text-primary">OPTIMAL for n ≤ 12</p>
+                </div>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Dynamic Programming solution that <strong class="text-white">guarantees</strong> the shortest possible route.</p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Time: O(n² × 2ⁿ)</span>
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Space: O(n × 2ⁿ)</span>
+            </div>
+        </div>
+
+        <!-- Christofides -->
+        <div class="ds-card glass-panel rounded-3xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-accent-purple/20 flex items-center justify-center">
+                    <span class="material-icons-round text-accent-purple text-xl">auto_graph</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white">Christofides</h3>
+                    <p class="text-xs text-accent-purple">1.5x Approximation</p>
+                </div>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Polynomial-time algorithm with <strong class="text-white">guaranteed</strong> solution within 1.5x of optimal.</p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Time: O(n³)</span>
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">MST + Matching</span>
+            </div>
+        </div>
+
+        <!-- 2-Opt -->
+        <div class="ds-card glass-panel rounded-3xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-accent-orange/20 flex items-center justify-center">
+                    <span class="material-icons-round text-accent-orange text-xl">swap_horiz</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white">2-Opt Local Search</h3>
+                    <p class="text-xs text-accent-orange">Refinement</p>
+                </div>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Iteratively improves routes by <strong class="text-white">reversing segments</strong> to eliminate crossings.</p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Time: O(n² × iter)</span>
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Local Optima</span>
+            </div>
+        </div>
+
+        <!-- Haversine -->
+        <div class="ds-card glass-panel rounded-3xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-accent-blue/20 flex items-center justify-center">
+                    <span class="material-icons-round text-accent-blue text-xl">public</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white">Haversine Formula</h3>
+                    <p class="text-xs text-accent-blue">Distance Calculation</p>
+                </div>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Calculates <strong class="text-white">great-circle distance</strong> between GPS coordinates on Earth's surface.</p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Time: O(1)</span>
+                <span class="px-2 py-1 rounded bg-surface-dark text-xs text-gray-400">Earth Radius: 6371km</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- API Section -->
+<section id="api" class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+    <div class="glass-panel rounded-3xl p-8">
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-purple-600/20 flex items-center justify-center border border-accent-purple/20">
+                <span class="material-icons-round text-accent-purple text-2xl">api</span>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-white">API Endpoints</h2>
+                <p class="text-gray-500 text-sm">REST API Reference</p>
+            </div>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-surface-dark rounded-xl border border-white/5">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-2 py-1 rounded bg-primary/20 text-primary text-xs font-bold">POST</span>
+                    <code class="text-white font-mono">/optimize</code>
+                </div>
+                <p class="text-gray-400 text-sm">Accepts array of locations, returns optimized route with ETAs</p>
+            </div>
+            <div class="p-4 bg-surface-dark rounded-xl border border-white/5">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-2 py-1 rounded bg-accent-blue/20 text-accent-blue text-xs font-bold">GET</span>
+                    <code class="text-white font-mono">/undo</code>
+                </div>
+                <p class="text-gray-400 text-sm">Restores previous state from history stack</p>
+            </div>
+            <div class="p-4 bg-surface-dark rounded-xl border border-white/5">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-2 py-1 rounded bg-accent-blue/20 text-accent-blue text-xs font-bold">GET</span>
+                    <code class="text-white font-mono">/</code>
+                </div>
+                <p class="text-gray-400 text-sm">Health check endpoint, returns server status</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="relative z-10 border-t border-white/5 bg-[#0a0a0b] py-8 mt-12">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <span class="material-icons-round text-primary text-lg">local_shipping</span>
+            </div>
+            <span class="text-gray-500 text-sm">PostAI Logistics © 2025</span>
+        </div>
+        <div class="flex gap-6 text-sm text-gray-500">
+            <a class="hover:text-primary transition-colors" href="index.html">Home</a>
+            <a class="hover:text-primary transition-colors" href="app.html">App</a>
+            <a class="hover:text-primary transition-colors" href="#overview">Documentation</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Smooth scroll for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+</script>
+</body></html>

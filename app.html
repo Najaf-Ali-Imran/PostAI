@@ -4,6 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>PostAI - Logistics Control Center</title>
+    <link rel="icon" type="image/png" href="assets/logo.png"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
@@ -125,6 +126,46 @@
             0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
             50% { box-shadow: 0 0 16px 4px rgba(52, 211, 153, 0.4); }
         }
+        /* Connection Status Indicator */
+        .connection-status {
+            position: relative;
+            width: 8px;
+            height: 8px;
+        }
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+        .connection-dot.connected {
+            background: #34D399;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+            animation: pulse-connected 2s ease-in-out infinite;
+        }
+        .connection-dot.disconnected {
+            background: #EF4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            animation: pulse-disconnected 1s ease-in-out infinite;
+        }
+        .connection-dot.connecting {
+            background: #F59E0B;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+            animation: pulse-connecting 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-connected {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        @keyframes pulse-disconnected {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+        @keyframes pulse-connecting {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.7; }
+        }
     </style>
 </head>
 <body class="bg-background-dark text-gray-100 h-screen overflow-hidden flex items-center justify-center p-4 md:p-8 dark">
@@ -140,7 +181,15 @@
                         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 text-black flex items-center justify-center font-bold shadow-lg shadow-primary/20">
                             <span class="material-icons-round">local_shipping</span>
                         </div>
-                        <span class="font-semibold text-lg tracking-wide text-white">PostAI Logistics</span>
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-lg tracking-wide text-white">PostAI Logistics</span>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <div class="connection-status">
+                                    <div class="connection-dot" id="connectionDot"></div>
+                                </div>
+                                <span class="text-[10px] text-gray-500 font-medium" id="connectionStatus">Connecting...</span>
+                            </div>
+                        </div>
                     </div>
                     <button class="text-gray-400 hover:text-white transition" onclick="showInfoPopup()">
                         <span class="material-icons-round">info</span>
@@ -324,6 +373,60 @@
         let currentDistance = 0;
         const segmentColors = ['#34D399', '#3B82F6', '#F59E0B', '#EF4444', '#A855F7', '#EC4899', '#14B8A6', '#F97316'];
         
+        // Connection status tracking
+        let isBackendConnected = false;
+        let connectionCheckInterval = null;
+        
+        // Check backend connection
+        async function checkBackendConnection() {
+            const connectionDot = document.getElementById('connectionDot');
+            const connectionStatus = document.getElementById('connectionStatus');
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch(`${API_URL}/`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    isBackendConnected = true;
+                    connectionDot.className = 'connection-dot connected';
+                    connectionStatus.textContent = 'Backend Connected';
+                    connectionStatus.className = 'text-[10px] text-green-400 font-medium';
+                } else {
+                    throw new Error('Backend responded with error');
+                }
+            } catch (error) {
+                isBackendConnected = false;
+                connectionDot.className = 'connection-dot disconnected';
+                connectionStatus.textContent = 'Backend Offline';
+                connectionStatus.className = 'text-[10px] text-red-400 font-medium';
+            }
+        }
+        
+        // Start connection monitoring
+        function startConnectionMonitoring() {
+            // Initial check
+            checkBackendConnection();
+            
+            // Check every 5 seconds
+            connectionCheckInterval = setInterval(checkBackendConnection, 5000);
+        }
+        
+        // Set connecting status initially
+        document.addEventListener('DOMContentLoaded', () => {
+            const connectionDot = document.getElementById('connectionDot');
+            const connectionStatus = document.getElementById('connectionStatus');
+            connectionDot.className = 'connection-dot connecting';
+            connectionStatus.textContent = 'Connecting...';
+            connectionStatus.className = 'text-[10px] text-yellow-400 font-medium';
+        });
+        
         // Truck simulation variables
         let truckMarker = null;
         let deliveryAnimation = null;
@@ -355,6 +458,9 @@
             map.setView(latlng, 16);
             showStatus('Location found! Click to add marker', 'success');
         }).addTo(map);
+
+        // Start backend connection monitoring
+        startConnectionMonitoring();
 
         // Fuel calculator listener
         document.getElementById('fuelAverage').addEventListener('input', function() {
@@ -810,25 +916,25 @@
             
             // Collect all route coordinates from segments
             allRouteCoordinates = [];
-            let segmentsProcessed = 0;
             
             routeSegments.forEach((seg, index) => {
-                setTimeout(() => {
-                    if (seg.polyline && seg.polyline.getLatLngs) {
-                        let coords = seg.polyline.getLatLngs();
-                        // Flatten if nested (routing machine returns nested arrays)
-                        if (coords.length > 0 && Array.isArray(coords[0])) {
-                            coords = coords.flat();
-                        }
-                        allRouteCoordinates.push(...coords);
+                if (seg.polyline && seg.polyline.getLatLngs) {
+                    let coords = seg.polyline.getLatLngs();
+                    // Flatten if nested (routing machine returns nested arrays)
+                    if (coords.length > 0 && Array.isArray(coords[0])) {
+                        coords = coords.flat();
                     }
-                    
-                    segmentsProcessed++;
-                    if (segmentsProcessed === routeSegments.length) {
-                        simulateDelivery();
-                    }
-                }, (index + 1) * 150);
+                    allRouteCoordinates.push(...coords);
+                }
             });
+            
+            if (allRouteCoordinates.length === 0) {
+                showStatus('No route coordinates found', 'error');
+                document.getElementById('startDeliveryBtn').disabled = false;
+                return;
+            }
+            
+            simulateDelivery();
         }
 
         function simulateDelivery() {
@@ -905,17 +1011,12 @@
                         nextCoord.lng
                     );
                     
-                    console.log(`Step ${currentStep}: Bearing = ${bearing.toFixed(2)}°`);
-                    
                     // Apply rotation to truck image
                     const truckElement = truckMarker.getElement();
-                    console.log('Truck element:', truckElement);
                     if (truckElement) {
                         const truckImg = truckElement.querySelector('.truck-image');
-                        console.log('Truck img:', truckImg);
                         if (truckImg) {
                             truckImg.style.transform = `rotate(${bearing}deg)`;
-                            console.log('Applied rotation:', bearing);
                         }
                     }
                 }
@@ -937,6 +1038,9 @@
 
             // Clear route data
             allRouteCoordinates = [];
+            
+            // Clear segment boundaries
+            window.segmentBoundaries = [];
             
             // Re-enable start button
             document.getElementById('startDeliveryBtn').disabled = false;
