@@ -101,9 +101,9 @@ public:
     }
     
     double getDistance(int from, int to) const {
-        for (const auto& edge : adjacencyList[from]) {
-            if (edge.destination == to) {
-                return edge.distance;
+        for (const Edge& edge : adjacencyList[from]) {
+        if (edge.destination == to) {
+            return edge.distance;
             }
         }
         return numeric_limits<double>::max();
