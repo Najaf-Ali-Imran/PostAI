@@ -360,8 +360,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+    <script src="postai.js"></script>
     <script>
-        const API_URL = 'http://127.0.0.1:18080';
+        let wasmModule = null;
         let map;
         let locations = [];
         let markers = [];
@@ -373,58 +374,44 @@
         let currentDistance = 0;
         const segmentColors = ['#34D399', '#3B82F6', '#F59E0B', '#EF4444', '#A855F7', '#EC4899', '#14B8A6', '#F97316'];
         
-        // Connection status tracking
-        let isBackendConnected = false;
-        let connectionCheckInterval = null;
+        // Client-side history stack (replaces server-side stack)
+        let historyStack = [];
         
-        // Check backend connection
-        async function checkBackendConnection() {
+        // WASM engine status tracking
+        let isWasmReady = false;
+        
+        // Initialize WASM module
+        async function initWasmModule() {
             const connectionDot = document.getElementById('connectionDot');
             const connectionStatus = document.getElementById('connectionStatus');
             
+            connectionDot.className = 'connection-dot connecting';
+            connectionStatus.textContent = 'Loading...';
+            connectionStatus.className = 'text-[10px] text-yellow-400 font-medium';
+            
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-                
-                const response = await fetch(`${API_URL}/`, {
-                    method: 'GET',
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (response.ok) {
-                    isBackendConnected = true;
-                    connectionDot.className = 'connection-dot connected';
-                    connectionStatus.textContent = 'Backend Connected';
-                    connectionStatus.className = 'text-[10px] text-green-400 font-medium';
-                } else {
-                    throw new Error('Backend responded with error');
-                }
+                wasmModule = await createPostAIModule();
+                isWasmReady = true;
+                connectionDot.className = 'connection-dot connected';
+                connectionStatus.textContent = 'Backend Engine Ready';
+                connectionStatus.className = 'text-[10px] text-green-400 font-medium';
             } catch (error) {
-                isBackendConnected = false;
+                isWasmReady = false;
                 connectionDot.className = 'connection-dot disconnected';
-                connectionStatus.textContent = 'Backend Offline';
+                connectionStatus.textContent = 'Backend Load Failed';
                 connectionStatus.className = 'text-[10px] text-red-400 font-medium';
+                console.error('WASM initialization failed:', error);
             }
         }
         
-        // Start connection monitoring
-        function startConnectionMonitoring() {
-            // Initial check
-            checkBackendConnection();
-            
-            // Check every 5 seconds
-            connectionCheckInterval = setInterval(checkBackendConnection, 5000);
-        }
-        
-        // Set connecting status initially
+        // Set loading status initially and load WASM
         document.addEventListener('DOMContentLoaded', () => {
             const connectionDot = document.getElementById('connectionDot');
             const connectionStatus = document.getElementById('connectionStatus');
             connectionDot.className = 'connection-dot connecting';
-            connectionStatus.textContent = 'Connecting...';
+            connectionStatus.textContent = 'Loading...';
             connectionStatus.className = 'text-[10px] text-yellow-400 font-medium';
+            initWasmModule();
         });
         
         // Truck simulation variables
@@ -459,8 +446,7 @@
             showStatus('Location found! Click to add marker', 'success');
         }).addTo(map);
 
-        // Start backend connection monitoring
-        startConnectionMonitoring();
+        // WASM module is initialized via DOMContentLoaded above
 
         // Fuel calculator listener
         document.getElementById('fuelAverage').addEventListener('input', function() {
@@ -628,32 +614,37 @@
             showStatus('All locations cleared', 'info');
         }
 
-        async function optimizeRoute() {
+        function optimizeRoute() {
             if (locations.length < 2) {
                 showStatus('Add at least warehouse and one house', 'error');
                 return;
             }
 
+            if (!isWasmReady || !wasmModule) {
+                showStatus('WASM engine not ready, please wait...', 'error');
+                return;
+            }
+
             try {
                 showStatus('Optimizing route...', 'info');
-                const response = await fetch(`${API_URL}/optimize`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(locations)
-                });
-                const data = await response.json();
+                
+                // Save current state to client-side history stack
+                historyStack.push(JSON.parse(JSON.stringify(locations)));
+                
+                // Call WASM directly (no server needed!)
+                const data = wasmModule.optimizeRoute(locations);
                 
                 if (data.status === 'success') {
                     displayOptimizedRoute(data);
-                    optimizedRouteData = data; // Store for truck simulation
+                    optimizedRouteData = data;
                     document.getElementById('startDeliveryBtn').disabled = false;
                     document.getElementById('resetBtn').disabled = false;
                     showStatus('Route optimized successfully!', 'success');
                 } else {
-                    showStatus('Optimization failed', 'error');
+                    showStatus('Optimization failed: ' + (data.error || ''), 'error');
                 }
             } catch (error) {
-                showStatus('Error connecting to server', 'error');
+                showStatus('Optimization error', 'error');
                 console.error(error);
             }
         }
