@@ -100,30 +100,7 @@ python -m http.server 8000
 
 ---
 
-## 🌐 Deployment
 
-PostAI is a **fully static site** — deploy to any static hosting platform:
-
-### Vercel
-
-1. Push to GitHub
-2. Import repository on [vercel.com](https://vercel.com)
-3. Set **Framework Preset** to `Other`
-4. Deploy ✅
-
-### Netlify
-
-1. Drag and drop the project folder to [netlify.com/drop](https://app.netlify.com/drop)
-2. Done ✅
-
-### Files needed for deployment
-
-```
-index.html, app.html, documentation.html,
-postai.js, postai.wasm, assets/
-```
-
----
 
 ## 📸 How to Use
 
