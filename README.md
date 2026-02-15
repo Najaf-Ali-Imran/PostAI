@@ -5,7 +5,7 @@
 <h1 align="center">PostAI Logistics</h1>
 
 <p align="center">
-  <strong>AI-Powered Route Optimization — Running Entirely in Your Browser</strong>
+  <strong>Delivery Route Optimization — Running Entirely in Your Browser</strong>
 </p>
 
 <p align="center">
